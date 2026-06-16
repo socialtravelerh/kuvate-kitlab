@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>クライアントヒアリング練習 | KUVATE X</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #1A1F2E; --surface: #242938; --surface2: #2D3347;
+  --accent: #4ECDC4; --text: #E8EAF0; --muted: #8B91A8; --border: #363D54;
+}
+body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', sans-serif; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+#header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 10px 14px; display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+.logo { font-size: 11px; font-weight: 700; color: var(--accent); letter-spacing: .1em; }
+#header h1 { flex: 1; font-size: 13px; font-weight: 600; }
+#new-btn { background: transparent; border: 1px solid var(--accent); color: var(--accent); padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+
+/* Screens */
+.screen { flex: 1; overflow-y: auto; padding: 16px; display: none; flex-direction: column; gap: 14px; }
+.screen.active { display: flex; }
+.sec-title { font-size: 12px; font-weight: 700; color: var(--muted); letter-spacing: .08em; text-transform: uppercase; }
+.breadcrumb { font-size: 11px; color: var(--muted); }
+.breadcrumb span { color: var(--accent); }
+
+/* Genre cards */
+.genre-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+.genre-card { background: var(--surface2); border: 1.5px solid var(--border); border-radius: 12px; cursor: pointer; overflow: hidden; transition: all .15s; }
+.genre-card:hover { border-color: var(--accent); transform: translateY(-1px); }
+.genre-card.selected { border-color: var(--accent); background: rgba(78,205,196,.08); }
+.genre-thumb { width: 100%; aspect-ratio: 16/9; display: flex; align-items: center; justify-content: center; font-size: 32px; }
+.genre-label { padding: 7px 10px 3px; font-size: 12px; font-weight: 600; }
+.genre-sub { padding: 0 10px 8px; font-size: 10px; color: var(--muted); line-height: 1.4; }
+
+/* Sub genre */
+.sub-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+.sub-btn { background: var(--surface2); border: 1.5px solid var(--border); border-radius: 10px; padding: 10px; cursor: pointer; transition: all .15s; text-align: left; }
+.sub-btn:hover { border-color: var(--accent); }
+.sub-btn.selected { border-color: var(--accent); background: rgba(78,205,196,.08); }
+.sub-icon { font-size: 20px; margin-bottom: 4px; }
+.sub-label { font-size: 12px; font-weight: 600; color: var(--text); }
+.sub-desc { font-size: 10px; color: var(--muted); margin-top: 2px; line-height: 1.4; }
+
+/* Buttons */
+.next-btn { background: var(--accent); color: #1A1F2E; border: none; border-radius: 10px; padding: 13px; font-size: 14px; font-weight: 700; cursor: pointer; width: 100%; opacity: .35; pointer-events: none; transition: opacity .2s; margin-top: auto; }
+.next-btn.active { opacity: 1; pointer-events: auto; }
+
+/* Loading screen */
+#screen-loading { flex: 1; display: none; align-items: center; justify-content: center; flex-direction: column; gap: 14px; color: var(--muted); font-size: 13px; }
+#screen-loading.active { display: flex; }
+.spinner { width: 32px; height: 32px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Client card */
+#client-area { background: var(--surface); border-bottom: 1px solid var(--border); padding: 12px 14px; flex-shrink: 0; display: none; }
+.client-card { background: var(--surface2); border-radius: 10px; padding: 12px 14px; display: flex; gap: 10px; }
+.c-avatar { width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg,#4ECDC4,#2196F3); display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }
+.c-name { font-size: 14px; font-weight: 700; margin-bottom: 2px; }
+.c-meta { font-size: 11px; color: var(--accent); font-weight: 600; margin-bottom: 4px; }
+.c-desc { font-size: 11px; color: var(--muted); line-height: 1.5; }
+.tag { display: inline-block; background: rgba(78,205,196,.12); color: var(--accent); font-size: 10px; font-weight: 600; padding: 1px 7px; border-radius: 10px; margin: 3px 2px 0 0; border: 1px solid rgba(78,205,196,.3); }
+
+/* Chat */
+#chat { flex: 1; overflow-y: auto; padding: 14px; display: none; flex-direction: column; gap: 10px; }
+#chat.active { display: flex; }
+.msg-row { display: flex; gap: 8px; align-items: flex-start; }
+.msg-row.user { flex-direction: row-reverse; }
+.m-avatar { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; margin-top: 2px; }
+.bubble { max-width: 74%; padding: 9px 13px; border-radius: 14px; font-size: 13px; line-height: 1.65; white-space: pre-wrap; word-break: break-word; }
+.bubble.client { background: var(--surface2); border-bottom-left-radius: 3px; }
+.bubble.user { background: #1E3A5F; border-bottom-right-radius: 3px; }
+.bubble.info { background: rgba(78,205,196,.1); border: 1px solid rgba(78,205,196,.2); color: var(--accent); font-size: 12px; max-width: 90%; border-bottom-left-radius: 3px; }
+.bubble.typing { display: flex; gap: 4px; align-items: center; padding: 12px 14px; }
+.dot { width: 6px; height: 6px; border-radius: 50%; background: var(--muted); animation: bounce 1.2s infinite; }
+.dot:nth-child(2) { animation-delay: .2s; }
+.dot:nth-child(3) { animation-delay: .4s; }
+@keyframes bounce { 0%,60%,100%{transform:translateY(0)} 30%{transform:translateY(-5px)} }
+.fb-card { background: var(--surface2); border: 1px solid rgba(78,205,196,.3); border-radius: 10px; padding: 12px 14px; font-size: 12px; line-height: 1.8; }
+.fb-title { font-size: 12px; font-weight: 700; color: var(--accent); margin-bottom: 6px; }
+
+/* Input */
+#input-area { background: var(--surface); border-top: 1px solid var(--border); padding: 10px 12px; flex-shrink: 0; display: none; }
+#input-area.active { display: block; }
+.input-row { display: flex; gap: 8px; align-items: flex-end; }
+#user-input { flex: 1; background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 9px 12px; color: var(--text); font-size: 13px; font-family: inherit; resize: none; outline: none; line-height: 1.5; max-height: 80px; }
+#user-input:focus { border-color: var(--accent); }
+#send-btn { width: 38px; height: 38px; border-radius: 10px; background: var(--accent); border: none; color: #1A1F2E; font-size: 15px; font-weight: 700; cursor: pointer; flex-shrink: 0; }
+#send-btn:disabled { background: var(--border); cursor: not-allowed; }
+.hint { font-size: 10px; color: var(--muted); margin-top: 6px; text-align: center; }
+.hint span { color: var(--accent); }
+
+/* Thumb colors */
+.t-logo    { background: linear-gradient(135deg,#1a1a2e,#16213e); }
+.t-card    { background: linear-gradient(135deg,#0f3460,#533483); }
+.t-banner  { background: linear-gradient(135deg,#e94560,#0f3460); }
+.t-lp      { background: linear-gradient(135deg,#1B4332,#40916C); }
+.t-sns     { background: linear-gradient(135deg,#f72585,#7209b7); }
+.t-thumb   { background: linear-gradient(135deg,#ff4800,#ff8c00); }
+.t-flyer   { background: linear-gradient(135deg,#023e8a,#0096c7); }
+.t-brand   { background: linear-gradient(135deg,#3d0066,#9b00d3); }
+.t-web     { background: linear-gradient(135deg,#1a535c,#4ecdc4); }
+.t-menu    { background: linear-gradient(135deg,#6b2737,#c9184a); }
+</style>
+</head>
+<body>
+
+<div id="header">
+  <span class="logo">KUVATE X</span>
+  <h1>クライアントヒアリング練習</h1>
+  <button id="export-btn" onclick="exportLog()" style="display:none;background:transparent;border:1px solid #8B91A8;color:#8B91A8;padding:4px 12px;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;">📄 保存</button>
+  <button id="new-btn" onclick="resetAll()">最初から</button>
+</div>
+
+<!-- Step1 -->
+<div class="screen active" id="screen-genre">
+  <div class="sec-title">Step 1 ── 練習するジャンルを選ぼう</div>
+  <div class="genre-grid">
+    <div class="genre-card" onclick="selectGenre(this,'ロゴデザイン')">
+      <div class="genre-thumb t-logo">🎨</div>
+      <div class="genre-label">ロゴデザイン</div>
+      <div class="genre-sub">ブランドの顔となるシンボル・ロゴタイプ</div>
+    </div>
+    <div class="genre-card" onclick="selectGenre(this,'名刺デザイン')">
+      <div class="genre-thumb t-card">🪪</div>
+      <div class="genre-label">名刺デザイン</div>
+      <div class="genre-sub">ビジネス・作家・フリーランス向け名刺</div>
+    </div>
+    <div class="genre-card" onclick="selectGenre(this,'バナーデザイン')">
+      <div class="genre-thumb t-banner">🖼</div>
+      <div class="genre-label">バナーデザイン</div>
+      <div class="genre-sub">Web広告・SNS・ECサイト向けバナー</div>
+    </div>
+    <div class="genre-card" onclick="selectGenre(this,'ランディングページ')">
+      <div class="genre-thumb t-lp">📄</div>
+      <div class="genre-label">LP（ランディングページ）</div>
+      <div class="genre-sub">商品・サービスの販売・集客ページ</div>
+    </div>
+    <div class="genre-card" onclick="selectGenre(this,'SNSアイコン・ヘッダー')">
+      <div class="genre-thumb t-sns">📱</div>
+      <div class="genre-label">SNSアイコン・ヘッダー</div>
+      <div class="genre-sub">X・Instagram・YouTubeなどのプロフィール</div>
+    </div>
+    <div class="genre-card" onclick="selectGenre(this,'サムネイル')">
+      <div class="genre-thumb t-thumb">▶️</div>
+      <div class="genre-label">サムネイル</div>
+      <div class="genre-sub">YouTube・Xスペース・Podcast・note など</div>
+    </div>
+    <div class="genre-card" onclick="selectGenre(this,'チラシ・フライヤー')">
+      <div class="genre-thumb t-flyer">📋</div>
+      <div class="genre-label">チラシ・フライヤー</div>
+      <div class="genre-sub">イベント・店舗・サービス告知の印刷物</div>
+    </div>
+    <div class="genre-card" onclick="selectGenre(this,'ブランディング')">
+      <div class="genre-thumb t-brand">✨</div>
+      <div class="genre-label">ブランディング全般</div>
+      <div class="genre-sub">ロゴ・カラー・フォントなどブランド統一</div>
+    </div>
+    <div class="genre-card" onclick="selectGenre(this,'Webサイト')">
+      <div class="genre-thumb t-web">🌐</div>
+      <div class="genre-label">Webサイト</div>
+      <div class="genre-sub">コーポレート・ポートフォリオ・店舗サイト</div>
+    </div>
+    <div class="genre-card" onclick="selectGenre(this,'メニュー・冊子')">
+      <div class="genre-thumb t-menu">📖</div>
+      <div class="genre-label">メニュー・冊子</div>
+      <div class="genre-sub">飲食店メニュー・パンフレット・同人誌</div>
+    </div>
+  </div>
+  <button class="next-btn" id="genre-next" onclick="goToSubGenre()">次へ →</button>
+</div>
+
+<!-- Step2 -->
+<div class="screen" id="screen-sub">
+  <div class="breadcrumb" id="bc-sub"></div>
+  <div class="sec-title" id="sub-title">Step 2 ── 詳細を選ぼう</div>
+  <div class="sub-grid" id="sub-grid"></div>
+  <button class="next-btn" id="sub-next" onclick="startHearing()">このテーマで練習する →</button>
+</div>
+
+<!-- Loading -->
+<div id="screen-loading">
+  <div class="spinner"></div>
+  <div id="loading-msg">クライアントを生成中…</div>
+</div>
+
+<!-- Client card -->
+<div id="client-area">
+  <div class="client-card">
+    <div class="c-avatar" id="c-emoji"></div>
+    <div style="flex:1">
+      <div class="c-name" id="c-name"></div>
+      <div class="c-meta" id="c-meta"></div>
+      <div class="c-desc" id="c-desc"></div>
+      <div id="c-tags"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Hearing chat -->
+<div id="chat"></div>
+
+<!-- Input -->
+<div id="input-area">
+  <div class="input-row">
+    <textarea id="user-input" placeholder="クライアントへの質問を入力…" rows="1"></textarea>
+    <button id="send-btn" onclick="sendMsg()">▶</button>
+  </div>
+  <div class="hint">▶ボタンで送信 / Shift+Enter で改行 ／ <span>「フィードバック」</span>と送ると講評が届く</div>
+</div>
+
+<script>
+const SUB_GENRES = {
+  'サムネイル': [
+    {icon:'▶️',label:'YouTube',desc:'動画のクリック率を上げるサムネ'},
+    {icon:'🎙',label:'Xスペース',desc:'音声配信のカバーアート'},
+    {icon:'🎧',label:'Podcast',desc:'Spotify・Apple Podcast向け'},
+    {icon:'📝',label:'note',desc:'記事の見出し画像・アイキャッチ'},
+    {icon:'📸',label:'Instagram',desc:'リール・フィード投稿カバー'},
+    {icon:'🎮',label:'Twitch/ゲーム配信',desc:'配信サムネ・パネルデザイン'},
+  ],
+  'バナーデザイン': [
+    {icon:'🛒',label:'ECサイト',desc:'楽天・Amazon・自社EC向け'},
+    {icon:'📣',label:'Web広告',desc:'GDN・SNS広告バナー'},
+    {icon:'🏠',label:'Webサイトトップ',desc:'ファーストビューのビジュアル'},
+    {icon:'📅',label:'イベント告知',desc:'セミナー・ライブ・展示会'},
+    {icon:'🎉',label:'セール・キャンペーン',desc:'割引・期間限定の訴求バナー'},
+    {icon:'📱',label:'SNS投稿',desc:'X・Instagram・Facebook投稿用'},
+  ],
+  'SNSアイコン・ヘッダー': [
+    {icon:'𝕏',label:'X（Twitter）',desc:'アイコン・ヘッダー・固定ツイ画像'},
+    {icon:'📸',label:'Instagram',desc:'プロフィール・ハイライトカバー'},
+    {icon:'▶️',label:'YouTube',desc:'チャンネルアート・アイコン'},
+    {icon:'💼',label:'LinkedIn',desc:'プロフェッショナル向けプロフ'},
+    {icon:'🎵',label:'TikTok',desc:'プロフィール・動画サムネ'},
+    {icon:'💬',label:'LINE公式',desc:'アカウントアイコン・リッチメニュー'},
+  ],
+  'ロゴデザイン': [
+    {icon:'🏪',label:'店舗・飲食',desc:'カフェ・美容室・ショップなど'},
+    {icon:'💻',label:'IT・Web系',desc:'スタートアップ・SaaS・アプリ'},
+    {icon:'🎨',label:'クリエイター',desc:'作家・デザイナー・カメラマン'},
+    {icon:'🏢',label:'コーポレート',desc:'企業・法人向けロゴ'},
+    {icon:'🌿',label:'自然・健康系',desc:'オーガニック・ヨガ・サロン'},
+    {icon:'🎪',label:'イベント・コミュニティ',desc:'サークル・団体・プロジェクト'},
+  ],
+  'ランディングページ': [
+    {icon:'📦',label:'物販・EC',desc:'商品販売・予約・購入ページ'},
+    {icon:'🎓',label:'教育・講座',desc:'オンライン講座・スクール集客'},
+    {icon:'💼',label:'BtoB・サービス',desc:'問い合わせ・商談獲得LP'},
+    {icon:'🎉',label:'イベント・セミナー',desc:'参加申込・集客ページ'},
+    {icon:'📱',label:'アプリ・SaaS',desc:'ダウンロード・登録促進ページ'},
+    {icon:'🏠',label:'不動産・地域ビジネス',desc:'物件・店舗・地域サービス'},
+  ],
+  'Webサイト': [
+    {icon:'🏢',label:'コーポレートサイト',desc:'会社紹介・採用・IR情報'},
+    {icon:'🎨',label:'ポートフォリオ',desc:'クリエイター・デザイナーの作品集'},
+    {icon:'🏪',label:'店舗サイト',desc:'飲食・美容・小売店のHP'},
+    {icon:'📝',label:'ブログ・メディア',desc:'情報発信・コンテンツサイト'},
+    {icon:'🛒',label:'ECサイト',desc:'自社オンラインショップ'},
+    {icon:'🌐',label:'多言語・グローバル',desc:'海外向け・インバウンド対応'},
+  ],
+  'チラシ・フライヤー': [
+    {icon:'🍽',label:'飲食・グルメ',desc:'メニュー・新店オープン告知'},
+    {icon:'🎪',label:'イベント・フェス',desc:'音楽・文化・地域イベント'},
+    {icon:'🎓',label:'教育・習い事',desc:'塾・スクール・ワークショップ'},
+    {icon:'💆',label:'美容・健康',desc:'サロン・エステ・フィットネス'},
+    {icon:'🏠',label:'不動産・工務店',desc:'物件・リフォーム・新築'},
+    {icon:'🏬',label:'小売・セール',desc:'ショップ・期間限定キャンペーン'},
+  ],
+  '名刺デザイン': [
+    {icon:'💼',label:'ビジネス・法人',desc:'営業・士業・コンサル向け'},
+    {icon:'🎨',label:'クリエイター',desc:'デザイナー・カメラマン・作家'},
+    {icon:'🌿',label:'サロン・セラピスト',desc:'美容・ヨガ・ヒーリング系'},
+    {icon:'🎤',label:'講師・コーチ',desc:'セミナー・コーチング・教育'},
+    {icon:'📱',label:'SNS重視型',desc:'QRコード・SNS誘導名刺'},
+    {icon:'✨',label:'二つ折り・変形',desc:'個性的な形状・特殊印刷'},
+  ],
+  'ブランディング': [
+    {icon:'🚀',label:'スタートアップ',desc:'新規事業・ブランド立ち上げ'},
+    {icon:'🏪',label:'実店舗リブランド',desc:'既存店のイメージ刷新'},
+    {icon:'👤',label:'個人ブランディング',desc:'フリーランス・専門家の統一感'},
+    {icon:'🌐',label:'EC・D2C',desc:'オンライン販売ブランドの世界観'},
+    {icon:'🌿',label:'ライフスタイル系',desc:'食・美容・wellness系ブランド'},
+    {icon:'🎓',label:'教育・コミュニティ',desc:'スクール・サロン・オンライン講座'},
+  ],
+  'メニュー・冊子': [
+    {icon:'🍽',label:'飲食店メニュー',desc:'カフェ・レストラン・居酒屋'},
+    {icon:'💆',label:'サロンメニュー表',desc:'美容・エステ・ネイルの料金表'},
+    {icon:'📚',label:'同人誌・ZINE',desc:'個人制作の冊子・ファンブック'},
+    {icon:'🏢',label:'会社案内・パンフ',desc:'企業・法人向け紹介冊子'},
+    {icon:'🎓',label:'教材・テキスト',desc:'講座・スクール用の学習教材'},
+    {icon:'📅',label:'イベントプログラム',desc:'式次第・パンフレット・冊子'},
+  ],
+};
+
+const CLIENT_TYPES = ["飲食店オーナー","ハンドメイド作家","フリーランス講師","美容サロン経営者","ネットショップ運営者","コーチ・コンサルタント","カメラマン","音楽教室オーナー","ヨガインストラクター","地域の工務店","NPO団体担当者","イベントプランナー"];
+
+let selectedGenre = '', selectedSub = '', client = null, history = [], busy = false, isComposing = false;
+
+// Step1
+function selectGenre(el, g) {
+  document.querySelectorAll('.genre-card').forEach(b => b.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedGenre = g;
+  document.getElementById('genre-next').classList.add('active');
+}
+
+function goToSubGenre() {
+  if (!selectedGenre) return;
+  const subs = SUB_GENRES[selectedGenre] || [];
+  document.getElementById('bc-sub').innerHTML = `<span>${selectedGenre}</span> › 種類を選ぶ`;
+  document.getElementById('sub-title').textContent = `Step 2 ── ${selectedGenre}の種類を選ぼう`;
+  const grid = document.getElementById('sub-grid');
+  grid.innerHTML = subs.map(s =>
+    `<div class="sub-btn" onclick="selectSub(this,'${s.label}')">
+      <div class="sub-icon">${s.icon}</div>
+      <div class="sub-label">${s.label}</div>
+      <div class="sub-desc">${s.desc}</div>
+    </div>`
+  ).join('');
+  showOnly('screen-sub');
+}
+
+function selectSub(el, s) {
+  document.querySelectorAll('.sub-btn').forEach(b => b.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedSub = s;
+  document.getElementById('sub-next').classList.add('active');
+}
+
+// Step3: 直接クライアント生成
+async function startHearing() {
+  if (!selectedSub || busy) return;
+  busy = true;
+  showOnly('screen-loading');
+
+  const type = CLIENT_TYPES[Math.floor(Math.random() * CLIENT_TYPES.length)];
+  try {
+    const raw = await api(
+      `仮想クライアント生成AI。JSONのみ返す。前置き不要。マークダウン不要。
+{"name":"名前+さん","emoji":"絵文字1文字","type":"職種","personality":"性格一言","request":"依頼概要2文","budget":"予算感","deadline":"納期感","tags":["t1","t2","t3"],"greeting":"デザイナーに最初に話しかけるひとこと（チャット口調で依頼の雰囲気が伝わる）"}`,
+      [{role:'user', content:`ジャンル:${selectedGenre} / 種類:${selectedSub} / 職種:${type}`}]
+    );
+    const m = raw.match(/\{[\s\S]*\}/);
+    if (!m) throw new Error('JSONが取得できませんでした');
+    client = JSON.parse(m[0]);
+
+    // クライアントカード表示
+    document.getElementById('c-emoji').textContent = client.emoji;
+    document.getElementById('c-name').textContent = client.name;
+    document.getElementById('c-meta').textContent = `${client.type}　予算 ${client.budget}　納期 ${client.deadline}`;
+    document.getElementById('c-desc').textContent = `${client.request}（性格: ${client.personality}）`;
+    document.getElementById('c-tags').innerHTML = (client.tags||[]).map(t=>`<span class="tag">${t}</span>`).join('');
+    document.getElementById('client-area').style.display = 'block';
+
+    // ヒアリングチャット表示
+    showOnly(null); // ローディング消す
+    document.getElementById('chat').classList.add('active');
+    document.getElementById('input-area').classList.add('active');
+
+    // クライアントから最初に挨拶
+    history = [];
+    addBubble('client', client.greeting, client.emoji);
+    history.push({role:'assistant', content: client.greeting});
+
+    // 保存ボタン表示
+    document.getElementById('export-btn').style.display = 'block';
+    ta.disabled = false;
+    ta.placeholder = 'クライアントへの質問を入力…';
+    document.getElementById('send-btn').disabled = false;
+    ta.focus();
+
+  } catch(e) {
+    showOnly(null);
+    document.getElementById('chat').classList.add('active');
+    document.getElementById('input-area').classList.add('active');
+    addBubble('client', 'クライアントの生成に失敗しました: ' + e.message, '⚠️');
+    document.getElementById('send-btn').disabled = false;
+  }
+  busy = false;
+}
+
+// ヒアリング送信
+async function sendMsg() {
+  const ta = document.getElementById('user-input');
+  const text = ta.value.trim();
+  if (!text || busy || !client) return;
+  ta.value = ''; ta.style.height = 'auto';
+  busy = true;
+  document.getElementById('send-btn').disabled = true;
+
+  addBubble('user', text, '🎓');
+  history.push({role:'user', content: text});
+
+  // タイピング表示
+  const chat = document.getElementById('chat');
+  const typEl = document.createElement('div');
+  typEl.className = 'msg-row'; typEl.id = 'typ';
+  typEl.innerHTML = `<div class="m-avatar" style="background:linear-gradient(135deg,#4ECDC4,#2196F3)">${client.emoji}</div><div class="bubble client typing"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>`;
+  chat.appendChild(typEl); chat.scrollTop = 99999;
+
+  try {
+    const isFB = text.includes('フィードバック');
+    let reply;
+    if (isFB) {
+      const conv = history.map(h=>(h.role==='user'?'デザイナー':'クライアント')+': '+h.content).join('\n');
+      reply = await api(
+        'あなたはデザイン講師です。デザイナー（学習者）がクライアントにヒアリングした会話を見て講評してください。良かった点・改善ポイント・次に聞くべき質問を具体的に日本語で教えてください。',
+        [{role:'user', content:`ジャンル:${selectedGenre}（${selectedSub}）\nクライアント: ${client.name}（${client.type}）\n依頼: ${client.request}\n\n会話記録:\n${conv}\n\n上記のヒアリングを講評してください。`}],
+        3000
+      );
+      document.getElementById('typ')?.remove();
+      const fb = document.createElement('div');
+      fb.className = 'fb-card';
+      fb.innerHTML = `<div class="fb-title">📝 ヒアリング講評</div><div style="white-space:pre-wrap">${esc(reply)}</div>`;
+      chat.appendChild(fb);
+    } else {
+      reply = await api(
+        `あなたは「${client.name}」というクライアントを演じてください。
+職種: ${client.type}
+性格: ${client.personality}
+依頼内容: ${client.request}
+予算: ${client.budget} / 納期: ${client.deadline}
+
+【役割】あなたはデザインを依頼したクライアントです。相手（デザイナー）からヒアリングを受けています。
+質問に対してリアルなクライアントとして自然に答えてください。
+・講師やアドバイザーのような発言はしない
+・聞かれたことに答える。聞かれていないことは言わない
+・日本語で話す`,
+        history
+      );
+      history.push({role:'assistant', content: reply});
+      document.getElementById('typ')?.remove();
+      addBubble('client', reply, client.emoji);
+    }
+  } catch(e) {
+    document.getElementById('typ')?.remove();
+    addBubble('client', 'エラー: ' + e.message, '⚠️');
+  }
+
+  chat.scrollTop = 99999;
+  document.getElementById('send-btn').disabled = false;
+  document.getElementById('user-input').focus();
+  busy = false;
+}
+
+// Utils
+async function api(system, messages, maxTokens = 1000) {
+  const r = await fetch('/.netlify/functions/proxy', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({model:'claude-haiku-4-5-20251001', max_tokens: maxTokens, system, messages})
+  });
+  if (!r.ok) throw new Error('API ' + r.status);
+  const d = await r.json();
+  const b = d.content?.find(x => x.type === 'text');
+  if (!b) throw new Error('レスポンスが空です');
+  return b.text;
+}
+
+function esc(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+}
+
+function addBubble(role, text, icon) {
+  const chat = document.getElementById('chat');
+  const el = document.createElement('div');
+  el.className = 'msg-row' + (role === 'user' ? ' user' : '');
+  const bg = role === 'user' ? 'linear-gradient(135deg,#667eea,#764ba2)' : 'linear-gradient(135deg,#4ECDC4,#2196F3)';
+  const cls = role === 'user' ? 'user' : 'client';
+  el.innerHTML = `<div class="m-avatar" style="background:${bg}">${icon}</div><div class="bubble ${cls}">${esc(text)}</div>`;
+  chat.appendChild(el);
+  chat.scrollTop = 99999;
+}
+
+function showOnly(id) {
+  ['screen-genre','screen-sub','screen-loading'].forEach(s => {
+    const el = document.getElementById(s);
+    if (el) el.classList.remove('active');
+  });
+  if (id) document.getElementById(id)?.classList.add('active');
+}
+
+function downloadLog() {
+  if (!client) return;
+  const now = new Date();
+  const dateStr = `${now.getFullYear()}/${now.getMonth()+1}/${now.getDate()} ${now.getHours()}:${String(now.getMinutes()).padStart(2,'0')}`;
+  const fileName = `hearing-${client.name.replace(/\s/g,'')}-${now.getFullYear()}${now.getMonth()+1}${now.getDate()}.html`;
+
+  const rows = history.map(h => {
+    const isUser = h.role === 'user';
+    const bg = isUser ? '#1E3A5F' : '#2D3347';
+    const dir = isUser ? 'row-reverse' : 'row';
+    return `<div style="display:flex;flex-direction:${dir};gap:10px;margin-bottom:12px;">
+      <div style="font-size:18px;margin-top:2px;">${isUser ? '🎓' : client.emoji}</div>
+      <div style="max-width:72%;background:${bg};padding:10px 14px;border-radius:14px;font-size:13px;line-height:1.7;white-space:pre-wrap;color:#E8EAF0;">${esc(h.content)}</div>
+    </div>`;
+  }).join('');
+
+  const fbCards = [];
+  document.querySelectorAll('.fb-card').forEach(el => {
+    fbCards.push(`<div style="background:#2D3347;border:1px solid rgba(78,205,196,.3);border-radius:10px;padding:14px 16px;margin-bottom:12px;font-size:12px;line-height:1.8;color:#E8EAF0;">${el.innerHTML}</div>`);
+  });
+
+  const html = `<!DOCTYPE html>
+<html lang="ja"><head><meta charset="UTF-8">
+<title>ヒアリング記録 - ${client.name} - ${dateStr}</title>
+<style>
+body{background:#1A1F2E;color:#E8EAF0;font-family:-apple-system,BlinkMacSystemFont,'Hiragino Sans',sans-serif;margin:0;padding:32px 20px;}
+.wrap{max-width:680px;margin:0 auto;}
+@media print{
+  body{background:#fff!important;color:#111!important;}
+  .no-print{display:none!important;}
+  div{border-color:#ccc!important;}
+}
+</style>
+</head><body><div class="wrap">
+  <div style="border-bottom:1px solid #363D54;padding-bottom:16px;margin-bottom:20px;">
+    <div style="font-size:10px;font-weight:700;color:#4ECDC4;letter-spacing:.1em;margin-bottom:6px;">KUVATE X ／ クライアントヒアリング練習記録</div>
+    <div style="font-size:18px;font-weight:700;margin-bottom:4px;">${client.emoji} ${client.name}</div>
+    <div style="font-size:11px;color:#4ECDC4;font-weight:600;margin-bottom:6px;">${client.type}　予算 ${client.budget}　納期 ${client.deadline}</div>
+    <div style="font-size:12px;color:#8B91A8;line-height:1.6;">${esc(client.request)}</div>
+    <div style="margin-top:6px;">${(client.tags||[]).map(t=>`<span style="display:inline-block;background:rgba(78,205,196,.12);color:#4ECDC4;font-size:10px;font-weight:600;padding:1px 7px;border-radius:10px;margin:2px 2px 0 0;border:1px solid rgba(78,205,196,.3);">${t}</span>`).join('')}</div>
+    <div style="margin-top:8px;font-size:11px;color:#8B91A8;">ジャンル: ${selectedGenre} ／ ${selectedSub}　　記録日時: ${dateStr}</div>
+  </div>
+  <div style="font-size:10px;font-weight:700;color:#8B91A8;letter-spacing:.08em;margin-bottom:12px;">CONVERSATION</div>
+  ${rows}
+  ${fbCards.length ? `<div style="margin-top:20px;padding-top:20px;border-top:1px solid #363D54;">${fbCards.join('')}</div>` : ''}
+  <div class="no-print" style="margin-top:32px;text-align:center;">
+    <button onclick="window.print()" style="background:#4ECDC4;color:#1A1F2E;border:none;border-radius:10px;padding:12px 28px;font-size:14px;font-weight:700;cursor:pointer;">🖨 印刷 / PDFに保存</button>
+  </div>
+</div></body></html>`;
+
+  const blob = new Blob([html], {type: 'text/html;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = fileName;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function exportLog() {
+  if (!client) return;
+  const now = new Date();
+  const dateStr = `${now.getFullYear()}/${now.getMonth()+1}/${now.getDate()} ${now.getHours()}:${String(now.getMinutes()).padStart(2,'0')}`;
+
+  const rows = history.map(h => {
+    const isUser = h.role === 'user';
+    const bg = isUser ? '#1E3A5F' : '#2D3347';
+    const dir = isUser ? 'row-reverse' : 'row';
+    return `<div style="display:flex;flex-direction:${dir};gap:10px;margin-bottom:12px;">
+      <div style="font-size:18px;margin-top:2px;">${isUser ? '🎓' : client.emoji}</div>
+      <div style="max-width:72%;background:${bg};padding:10px 14px;border-radius:14px;font-size:13px;line-height:1.7;white-space:pre-wrap;color:#E8EAF0;">${esc(h.content)}</div>
+    </div>`;
+  }).join('');
+
+  const fbCards = [];
+  document.querySelectorAll('.fb-card').forEach(el => {
+    fbCards.push(`<div style="background:#2D3347;border:1px solid rgba(78,205,196,.3);border-radius:10px;padding:14px 16px;margin-bottom:12px;font-size:12px;line-height:1.8;color:#E8EAF0;">${el.innerHTML}</div>`);
+  });
+
+  const overlay = document.createElement('div');
+  overlay.id = 'export-overlay';
+  overlay.style.cssText = 'position:fixed;inset:0;background:#1A1F2E;z-index:1000;overflow-y:auto;';
+  overlay.innerHTML = `
+    <div style="max-width:680px;margin:0 auto;padding:24px 20px 60px;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:24px;position:sticky;top:0;background:#1A1F2E;padding:10px 0;border-bottom:1px solid #363D54;">
+        <button onclick="downloadLog()" style="background:#4ECDC4;color:#1A1F2E;border:none;border-radius:8px;padding:8px 18px;font-size:13px;font-weight:700;cursor:pointer;">⬇️ HTMLで保存</button>
+        <button onclick="document.getElementById('export-overlay').remove()" style="background:transparent;border:1px solid #363D54;color:#8B91A8;border-radius:8px;padding:8px 14px;font-size:13px;cursor:pointer;">✕ 閉じる</button>
+        <span style="font-size:11px;color:#8B91A8;">保存したHTMLをブラウザで開いて印刷→PDF変換できます</span>
+      </div>
+      <div style="margin-bottom:20px;">
+        <div style="font-size:10px;font-weight:700;color:#4ECDC4;letter-spacing:.1em;margin-bottom:6px;">KUVATE X ／ クライアントヒアリング練習記録</div>
+        <div style="font-size:18px;font-weight:700;margin-bottom:4px;">${client.emoji} ${client.name}</div>
+        <div style="font-size:11px;color:#4ECDC4;font-weight:600;margin-bottom:6px;">${client.type}　予算 ${client.budget}　納期 ${client.deadline}</div>
+        <div style="font-size:12px;color:#8B91A8;line-height:1.6;">${esc(client.request)}</div>
+        <div style="margin-top:8px;font-size:11px;color:#8B91A8;">ジャンル: ${selectedGenre} ／ ${selectedSub}　　記録日時: ${dateStr}</div>
+      </div>
+      <div style="font-size:10px;font-weight:700;color:#8B91A8;letter-spacing:.08em;margin-bottom:12px;">CONVERSATION</div>
+      ${rows}
+      ${fbCards.length ? `<div style="margin-top:20px;padding-top:20px;border-top:1px solid #363D54;">${fbCards.join('')}</div>` : ''}
+    </div>`;
+  document.body.appendChild(overlay);
+}
+
+function resetAll() {
+  document.getElementById('export-btn').style.display = 'none';
+  document.querySelectorAll('.genre-card').forEach(b => b.classList.remove('selected'));
+  document.getElementById('genre-next').classList.remove('active');
+  document.getElementById('client-area').style.display = 'none';
+  document.getElementById('chat').classList.remove('active');
+  document.getElementById('chat').innerHTML = '';
+  document.getElementById('input-area').classList.remove('active');
+  document.getElementById('user-input').disabled = false;
+  document.getElementById('user-input').value = '';
+  document.getElementById('send-btn').disabled = false;
+  showOnly('screen-genre');
+}
+
+// キー制御
+const ta = document.getElementById('user-input');
+ta.addEventListener('compositionstart', () => { isComposing = true; });
+ta.addEventListener('compositionend',   () => { isComposing = false; });
+ta.addEventListener('keydown', e => {
+  if (e.key === 'Enter') {
+    if (e.shiftKey) return; // Shift+Enter → 改行
+    if (isComposing) return; // IME変換中 → 変換確定（デフォルト動作）
+    // IME確定済み or 英数字入力 → 送信
+    e.preventDefault();
+    e.stopPropagation();
+    sendMsg();
+  }
+});
+ta.addEventListener('input', function() {
+  this.style.height = 'auto';
+  this.style.height = Math.min(this.scrollHeight, 80) + 'px';
+});
+</script>
+</body>
+</html>
