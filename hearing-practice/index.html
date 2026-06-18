@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>クライアントヒアリング練習 | KUVATE X</title>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -11,7 +11,7 @@ html, body { max-width: 100%; overflow-x: hidden; }
   --bg: #1A1F2E; --surface: #242938; --surface2: #2D3347;
   --accent: #4ECDC4; --text: #E8EAF0; --muted: #8B91A8; --border: #363D54;
 }
-body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', sans-serif; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', sans-serif; display: flex; flex-direction: column; height: 100vh; height: 100dvh; overflow: hidden; position: fixed; width: 100%; top: 0; left: 0; }
 #header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 10px 14px; display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
 .logo { font-size: 11px; font-weight: 700; color: var(--accent); letter-spacing: .1em; }
 #header h1 { flex: 1; font-size: 13px; font-weight: 600; }
@@ -86,7 +86,7 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
 #input-area { background: var(--surface); border-top: 1px solid var(--border); padding: 10px 12px; flex-shrink: 0; display: none; box-sizing: border-box; width: 100%; max-width: 100%; overflow: hidden; }
 #input-area.active { display: block; }
 .input-row { display: flex; gap: 8px; align-items: flex-end; width: 100%; min-width: 0; }
-#user-input { flex: 1; min-width: 0; width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 9px 12px; color: var(--text); font-size: 13px; font-family: inherit; resize: none; outline: none; line-height: 1.5; max-height: 80px; box-sizing: border-box; }
+#user-input { flex: 1; min-width: 0; width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 9px 12px; color: var(--text); font-size: 16px; font-family: inherit; resize: none; outline: none; line-height: 1.4; max-height: 90px; box-sizing: border-box; }
 #user-input:focus { border-color: var(--accent); }
 #send-btn { width: 38px; height: 38px; min-width: 38px; border-radius: 10px; background: var(--accent); border: none; color: #1A1F2E; font-size: 15px; font-weight: 700; cursor: pointer; flex-shrink: 0; }
 #send-btn:disabled { background: var(--border); cursor: not-allowed; }
@@ -646,7 +646,7 @@ ta.addEventListener('keydown', e => {
 });
 ta.addEventListener('input', function() {
   this.style.height = 'auto';
-  this.style.height = Math.min(this.scrollHeight, 80) + 'px';
+  this.style.height = Math.min(this.scrollHeight, 90) + 'px';
 });
 
 // ヒントテキストをデバイスに応じて切り替え
